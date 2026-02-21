@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>구문 스나이퍼 — Syntax Sniper</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #242836;
+            --surface3: #2e3347;
+            --primary: #6c8cff;
+            --primary-dim: #4a65cc;
+            --accent: #ff6b9d;
+            --accent2: #ffd166;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --text: #e8eaf0;
+            --text-dim: #8892a4;
+            --text-muted: #5a6273;
+            --noun: #60a5fa;
+            --modifier: #fb7185;
+            --noun-bg: rgba(96, 165, 250, .15);
+            --modifier-bg: rgba(251, 113, 133, .15);
+            --radius: 12px;
+            --shadow: 0 8px 32px rgba(0, 0, 0, .4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden
+        }
+
+        /* HEADER */
+        .header {
+            background: linear-gradient(135deg, #1e2233 0%, #2a1f3d 100%);
+            padding: 20px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--surface3);
+            position: sticky;
+            top: 0;
+            z-index: 100
+        }
+
+        .header h1 {
+            font-size: 1.4em;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent
+        }
+
+        .header-sub {
+            font-size: .85em;
+            color: var(--text-dim)
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 15px;
+            align-items: center
+        }
+
+        .stat {
+            background: var(--surface2);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: .8em;
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .stat .num {
+            font-weight: 700;
+            color: var(--accent2)
+        }
+
+        /* NAV TABS */
+        .nav {
+            display: flex;
+            gap: 4px;
+            padding: 10px 20px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--surface3);
+            overflow-x: auto
+        }
+
+        .nav button {
+            padding: 10px 20px;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            font-size: .9em;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: .2s;
+            white-space: nowrap;
+            font-family: inherit
+        }
+
+        .nav button:hover {
+            background: var(--surface2);
+            color: var(--text)
+        }
+
+        .nav button.active {
+            background: var(--primary-dim);
+            color: #fff;
+            font-weight: 700
+        }
+
+        /* MAIN */
+        .main {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 20px
+        }
+
+        .panel {
+            display: none;
+            animation: fadeUp .4s
+        }
+
+        .panel.active {
+            display: block
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(15px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        /* CARDS */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--surface3);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow)
+        }
+
+        .card h2 {
+            font-size: 1.1em;
+            margin-bottom: 12px;
+            color: var(--primary)
+        }
+
+        .card h3 {
+            font-size: .95em;
+            margin-bottom: 8px;
+            color: var(--accent2)
+        }
+
+        /* SENTENCE DISPLAY */
+        .sentence-box {
+            background: var(--surface2);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin: 16px 0;
+            line-height: 2.2;
+            font-size: 1.15em;
+            letter-spacing: .3px
+        }
+
+        .sentence-box .word {
+            display: inline-block;
+            padding: 2px 4px;
+            margin: 2px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: .15s;
+            border: 2px solid transparent;
+            user-select: none
+        }
+
+        .sentence-box .word:hover {
+            background: var(--surface3)
+        }
+
+        .sentence-box .word.noun-selected {
+            background: var(--noun-bg);
+            border-color: var(--noun);
+            color: var(--noun);
+            font-weight: 700
+        }
+
+        .sentence-box .word.mod-selected {
+            background: var(--modifier-bg);
+            border-color: var(--modifier);
+            color: var(--modifier);
+            font-weight: 700
+        }
+
+        .sentence-box .word.correct-noun {
+            background: rgba(46, 204, 113, .15);
+            border-color: var(--success);
+            color: var(--success)
+        }
+
+        .sentence-box .word.correct-mod {
+            background: rgba(46, 204, 113, .15);
+            border-color: var(--success);
+            color: var(--success)
+        }
+
+        .sentence-box .word.wrong {
+            background: rgba(231, 76, 60, .15);
+            border-color: var(--danger);
+            color: var(--danger)
+        }
+
+        /* BUTTONS */
+        .btn {
+            padding: 10px 22px;
+            border: none;
+            border-radius: 8px;
+            font-size: .9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: .2s;
+            font-family: inherit
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dim)
+        }
+
+        .btn-accent {
+            background: var(--accent);
+            color: #fff
+        }
+
+        .btn-accent:hover {
+            opacity: .85
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: #fff
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--surface3);
+            color: var(--text-dim)
+        }
+
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary)
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px
+        }
+
+        /* MODE SELECTOR */
+        .mode-selector {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px
+        }
+
+        .mode-selector .chip {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: .8em;
+            cursor: pointer;
+            background: var(--surface2);
+            color: var(--text-dim);
+            border: 1px solid var(--surface3);
+            transition: .2s
+        }
+
+        .mode-selector .chip:hover {
+            border-color: var(--primary)
+        }
+
+        .mode-selector .chip.active {
+            background: var(--primary-dim);
+            color: #fff;
+            border-color: var(--primary)
+        }
+
+        /* TYPE GRID */
+        .type-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 6px;
+            margin: 12px 0
+        }
+
+        .type-btn {
+            padding: 8px;
+            border: 2px solid var(--surface3);
+            border-radius: 8px;
+            background: var(--surface2);
+            color: var(--text-dim);
+            font-size: .75em;
+            cursor: pointer;
+            text-align: center;
+            transition: .2s;
+            font-family: inherit
+        }
+
+        .type-btn:hover {
+            border-color: var(--primary);
+            color: var(--text)
+        }
+
+        .type-btn.selected {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--modifier-bg)
+        }
+
+        .type-btn.correct {
+            border-color: var(--success);
+            color: var(--success);
+            background: rgba(46, 204, 113, .1)
+        }
+
+        .type-btn.wrong {
+            border-color: var(--danger);
+            color: var(--danger);
+            background: rgba(231, 76, 60, .1)
+        }
+
+        /* FEEDBACK */
+        .feedback {
+            padding: 16px 20px;
+            border-radius: var(--radius);
+            margin: 12px 0;
+            display: none;
+            animation: fadeUp .3s
+        }
+
+        .feedback.show {
+            display: block
+        }
+
+        .feedback.correct {
+            background: rgba(46, 204, 113, .1);
+            border: 1px solid var(--success);
+            color: var(--success)
+        }
+
+        .feedback.wrong {
+            background: rgba(231, 76, 60, .1);
+            border: 1px solid var(--danger)
+        }
+
+        .feedback .fb-title {
+            font-weight: 700;
+            font-size: 1em;
+            margin-bottom: 6px
+        }
+
+        .feedback .fb-explain {
+            font-size: .85em;
+            color: var(--text-dim);
+            line-height: 1.7
+        }
+
+        /* PROGRESS BAR */
+        .progress-bar {
+            height: 6px;
+            background: var(--surface3);
+            border-radius: 3px;
+            margin: 10px 0;
+            overflow: hidden
+        }
+
+        .progress-bar .fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 3px;
+            transition: width .4s
+        }
+
+        /* DASHBOARD */
+        .dash-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px
+        }
+
+        .dash-card {
+            background: var(--surface2);
+            border-radius: var(--radius);
+            padding: 16px;
+            text-align: center
+        }
+
+        .dash-card .big-num {
+            font-size: 2em;
+            font-weight: 900;
+            color: var(--accent2)
+        }
+
+        .dash-card .label {
+            font-size: .8em;
+            color: var(--text-dim);
+            margin-top: 4px
+        }
+
+        .bar-chart {
+            margin: 16px 0
+        }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+            font-size: .8em
+        }
+
+        .bar-row .bar-label {
+            width: 140px;
+            text-align: right;
+            color: var(--text-dim);
+            flex-shrink: 0
+        }
+
+        .bar-row .bar-track {
+            flex: 1;
+            height: 20px;
+            background: var(--surface3);
+            border-radius: 4px;
+            overflow: hidden
+        }
+
+        .bar-row .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width .5s
+        }
+
+        .bar-row .bar-val {
+            width: 40px;
+            text-align: right;
+            font-weight: 700;
+            font-size: .85em
+        }
+
+        /* CUSTOM TEXT */
+        .custom-textarea {
+            width: 100%;
+            min-height: 150px;
+            background: var(--surface2);
+            border: 2px solid var(--surface3);
+            border-radius: var(--radius);
+            padding: 16px;
+            color: var(--text);
+            font-size: 1em;
+            font-family: inherit;
+            resize: vertical;
+            line-height: 1.8
+        }
+
+        .custom-textarea:focus {
+            outline: none;
+            border-color: var(--primary)
+        }
+
+        .custom-textarea::placeholder {
+            color: var(--text-muted)
+        }
+
+        /* LEGEND */
+        .legend {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin: 12px 0;
+            font-size: .85em
+        }
+
+        .legend span {
+            display: flex;
+            align-items: center;
+            gap: 4px
+        }
+
+        .legend .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block
+        }
+
+        .dot-noun {
+            background: var(--noun)
+        }
+
+        .dot-mod {
+            background: var(--modifier)
+        }
+
+        /* TOOLTIP */
+        .info-tip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            color: var(--primary);
+            font-size: .8em;
+            margin-left: 4px
+        }
+
+        .info-tip:hover::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface3);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: .8em;
+            white-space: nowrap;
+            z-index: 10;
+            box-shadow: var(--shadow)
+        }
+
+        /* DIFFICULTY */
+        .diff-badge {
+            font-size: .7em;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600
+        }
+
+        .diff-easy {
+            background: rgba(46, 204, 113, .15);
+            color: var(--success)
+        }
+
+        .diff-mid {
+            background: rgba(243, 156, 18, .15);
+            color: var(--warning)
+        }
+
+        .diff-hard {
+            background: rgba(231, 76, 60, .15);
+            color: var(--danger)
+        }
+
+        /* RESPONSIVE */
+        @media(max-width:700px) {
+            .header {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center
+            }
+
+            .stats-bar {
+                justify-content: center
+            }
+
+            .type-grid {
+                grid-template-columns: repeat(auto-fill, minmax(90px, 1fr))
+            }
+
+            .dash-grid {
+                grid-template-columns: 1fr 1fr
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- HEADER -->
+    <div class="header">
+        <div>
+            <h1>🎯 구문 스나이퍼</h1>
+            <div class="header-sub">후치수식 실전 판별 훈련기</div>
+        </div>
+        <div class="stats-bar">
+            <div class="stat">🎯 정답률 <span class="num" id="hd-acc">0%</span></div>
+            <div class="stat">🔥 연속 <span class="num" id="hd-streak">0</span></div>
+            <div class="stat">📊 진행 <span class="num" id="hd-done">0/0</span></div>
+        </div>
+    </div>
+    <!-- NAV -->
+    <div class="nav">
+        <button class="active" onclick="switchTab('identify')">🔍 판별 모드</button>
+        <button onclick="switchTab('classify')">🏷️ 분류 모드</button>
+        <button onclick="switchTab('custom')">📝 커스텀 텍스트</button>
+        <button onclick="switchTab('dashboard')">📊 대시보드</button>
+        <button onclick="switchTab('reference')">📖 후치수식 참조</button>
+    </div>
+    <!-- MAIN CONTENT -->
+    <div class="main">
+
+        <!-- ===== 판별 모드 ===== -->
+        <div id="tab-identify" class="panel active">
+            <div class="card">
+                <h2>🔍 판별 모드 — 명사와 수식어를 찾아라!</h2>
+                <p style="color:var(--text-dim);font-size:.85em;margin-bottom:8px">문장에서 <span
+                        style="color:var(--noun);font-weight:700">수식받는 명사</span>와 <span
+                        style="color:var(--modifier);font-weight:700">후치수식어</span>를 클릭으로 마킹하세요.</p>
+                <div class="legend">
+                    <span><span class="dot dot-noun"></span> 명사 (좌클릭)</span>
+                    <span><span class="dot dot-mod"></span> 수식어 (우클릭)</span>
+                </div>
+                <div class="mode-selector">
+                    <div class="chip active" onclick="setDifficulty('all')">전체</div>
+                    <div class="chip" onclick="setDifficulty('easy')">🌱 쉬움</div>
+                    <div class="chip" onclick="setDifficulty('mid')">🌳 보통</div>
+                    <div class="chip" onclick="setDifficulty('hard')">🏅 어려움</div>
+                </div>
+                <div class="progress-bar">
+                    <div class="fill" id="id-progress" style="width:0%"></div>
+                </div>
+            </div>
+            <div class="card" id="id-question-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                    <span class="diff-badge" id="id-diff"></span>
+                    <span style="font-size:.8em;color:var(--text-muted)" id="id-counter">1 / 200</span>
+                </div>
+                <div class="sentence-box" id="id-sentence"></div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="checkIdentify()">✅ 정답 확인</button>
+                    <button class="btn btn-outline" onclick="showHint()">💡 힌트</button>
+                    <button class="btn btn-outline" onclick="skipSentence()">⏩ 건너뛰기</button>
+                </div>
+                <div class="feedback" id="id-feedback">
+                    <div class="fb-title" id="id-fb-title"></div>
+                    <div class="fb-explain" id="id-fb-explain"></div>
+                </div>
+                <div class="btn-group" id="id-next-group" style="display:none">
+                    <button class="btn btn-accent" onclick="nextIdentify()">다음 문장 →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 분류 모드 ===== -->
+        <div id="tab-classify" class="panel">
+            <div class="card">
+                <h2>🏷️ 분류 모드 — 후치수식 유형을 맞춰라!</h2>
+                <p style="color:var(--text-dim);font-size:.85em">하이라이트된 구조가 17가지 유형 중 어디에 해당하는지 골라보세요.</p>
+                <div class="mode-selector">
+                    <div class="chip active" onclick="setClassifyDiff('all')">전체</div>
+                    <div class="chip" onclick="setClassifyDiff('easy')">🌱 쉬움</div>
+                    <div class="chip" onclick="setClassifyDiff('mid')">🌳 보통</div>
+                    <div class="chip" onclick="setClassifyDiff('hard')">🏅 어려움</div>
+                </div>
+                <div class="progress-bar">
+                    <div class="fill" id="cl-progress" style="width:0%"></div>
+                </div>
+            </div>
+            <div class="card" id="cl-question-card">
+                <span class="diff-badge" id="cl-diff"></span>
+                <div class="sentence-box" id="cl-sentence"></div>
+                <h3>이 구조는 무엇인가요?</h3>
+                <div class="type-grid" id="cl-type-grid"></div>
+                <div class="feedback" id="cl-feedback">
+                    <div class="fb-title" id="cl-fb-title"></div>
+                    <div class="fb-explain" id="cl-fb-explain"></div>
+                </div>
+                <div class="btn-group" id="cl-next-group" style="display:none">
+                    <button class="btn btn-accent" onclick="nextClassify()">다음 문장 →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 커스텀 텍스트 ===== -->
+        <div id="tab-custom" class="panel">
+            <div class="card">
+                <h2>📝 커스텀 텍스트 — 내 지문으로 연습!</h2>
+                <p style="color:var(--text-dim);font-size:.85em;margin-bottom:12px">모의고사, 교과서, 어떤 영어 지문이든 붙여넣고 후치수식 구조를
+                    찾는 연습을 하세요.</p>
+                <textarea class="custom-textarea" id="custom-input"
+                    placeholder="여기에 영어 지문을 붙여넣으세요...&#10;&#10;예: The scientists who conducted the study found that the results they had anticipated were significantly different from the data collected by their colleagues in the field."></textarea>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="loadCustomText()">📥 지문 불러오기</button>
+                    <button class="btn btn-outline" onclick="clearCustom()">🗑️ 초기화</button>
+                </div>
+            </div>
+            <div class="card" id="custom-practice" style="display:none">
+                <h2>🎯 커스텀 지문 연습</h2>
+                <p style="color:var(--text-dim);font-size:.85em">각 문장에서 <span style="color:var(--noun)">명사</span>와 <span
+                        style="color:var(--modifier)">수식어</span>를 찾아보세요. 선생님이 정답을 확인해줍니다.</p>
+                <div class="legend">
+                    <span><span class="dot dot-noun"></span> 명사 (좌클릭)</span>
+                    <span><span class="dot dot-mod"></span> 수식어 (우클릭)</span>
+                </div>
+                <div id="custom-sentences"></div>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="exportCustomResult()">📋 결과 복사</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 대시보드 ===== -->
+        <div id="tab-dashboard" class="panel">
+            <div class="card">
+                <h2>📊 학습 대시보드</h2>
+                <div class="dash-grid" id="dash-summary"></div>
+            </div>
+            <div class="card">
+                <h3>유형별 정답률</h3>
+                <div class="bar-chart" id="dash-type-chart"></div>
+            </div>
+            <div class="card">
+                <h3>최근 오답 문장</h3>
+                <div id="dash-wrong-list" style="font-size:.85em;color:var(--text-dim)"></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-outline" onclick="resetProgress()">🔄 진행도 초기화</button>
+            </div>
+        </div>
+
+        <!-- ===== 참조표 ===== -->
+        <div id="tab-reference" class="panel">
+            <div class="card">
+                <h2>📖 후치수식 17유형 참조표</h2>
+                <p style="color:var(--text-dim);font-size:.85em;margin-bottom:12px">기존 학습 자료 기반 — 명사 뒤에서 "어떤?"이라고 질문하세요!
+                </p>
+                <div id="ref-table"></div>
+            </div>
+        </div>
+
+    </div><!-- end main -->
+
+    <script>
+        /* ========== TYPE DEFINITIONS ========== */
+        const TYPES = {
+            1: { name: "전치사 + 명사구", short: "전치사구", desc: "위치, 방법, 대상 등을 설명하며 앞의 명사를 꾸밈", hint: "명사 뒤에 in/on/of/at/from/with 같은 전치사가 나오면!", color: "#60a5fa" },
+            2: { name: "현재분사구 (~ing)", short: "현재분사", desc: "능동/진행 의미: ~하는, ~하고 있는", hint: "명사 뒤에 -ing가 나오면! 명사가 직접 행동하는 주체", color: "#34d399" },
+            3: { name: "과거분사구 (p.p.)", short: "과거분사", desc: "수동/완료 의미: ~된, ~받은", hint: "명사 뒤에 p.p.(과거분사)가 나오면! 명사가 행동을 당하는 대상", color: "#a78bfa" },
+            4: { name: "형용사 + α", short: "형용사구", desc: "형용사의 의미를 보충하며 성질, 상태, 가능성 등을 구체화", hint: "명사 뒤에 형용사 + to부정사/전치사구가 나오면!", color: "#fbbf24" },
+            5: { name: "to 부정사", short: "to부정사", desc: "미래 지향적이거나 목적/용도/성격을 설명", hint: "명사 뒤에 to + 동사원형이 나오면!", color: "#f472b6" },
+            6: { name: "관계대명사절 (주격)", short: "관계대명사(주격)", desc: "선행사 설명, 관계대명사가 주어 역할", hint: "명사 뒤에 who/which/that + 동사가 바로 나오면!", color: "#38bdf8" },
+            7: { name: "관계대명사절 (목적격 생략)", short: "관계대명사(목적격)", desc: "선행사 설명, 절 내 목적어가 생략된 형태", hint: "⚡ 핵심! 명사 뒤에 바로 (주어)+(동사)가 나오면 이 구조를 의심!", color: "#fb923c" },
+            8: { name: "관계부사절", short: "관계부사", desc: "장소, 시간, 이유, 방법 등 설명", hint: "명사 뒤에 where/when/why/how + 완전한 문장이 나오면!", color: "#4ade80" },
+            9: { name: "동격 that절", short: "동격that", desc: "추상명사 설명: ~라는 내용 구체화", hint: "fact/news/idea/belief 같은 추상명사 뒤에 that + 완전한 문장이 나오면!", color: "#e879f9" },
+            10: { name: "of + ~ing 구", short: "of+ing", desc: "행위나 개념을 명사형으로 만들어 앞 명사를 구체화", hint: "명사 뒤에 of + 동명사(~ing)가 나오면!", color: "#22d3ee" },
+            11: { name: "전치사 + 관계대명사절", short: "전치사+관계대명사", desc: "격식적 표현, 전치사와 관계사 결합", hint: "명사 뒤에 in which / to whom 같은 형태가 나오면!", color: "#818cf8" },
+            12: { name: "소유격 관계대명사 (whose)", short: "whose절", desc: "소유관계를 나타내며 명사 뒤 수식", hint: "명사 뒤에 whose + 명사가 나오면!", color: "#fb7185" },
+            13: { name: "부사(구)", short: "부사구", desc: "일시적 상황이나 맥락을 제공", hint: "명사 뒤에 장소/시간 부사(here, outside, yesterday)가 나오면!", color: "#a3e635" },
+            14: { name: "동격 명사구", short: "동격명사", desc: "앞 명사를 구체적으로 정의하거나 추가 정보 제공", hint: "명사, 쉼표 뒤에 또 다른 명사(구)가 나오면!", color: "#14b8a6" },
+            15: { name: "비교/최상급 구", short: "비교급구", desc: "정도 비교: ~보다 더, 가장 ~한", hint: "명사 뒤에 more/less/most 또는 -er/-est가 나오면!", color: "#f59e0b" },
+            16: { name: "수량 표현 + of + 명사", short: "수량of", desc: "~ 중 다수/일부/전부 등 부분 또는 전체", hint: "Many/Some/Most 뒤에 of + 명사가 나오면!", color: "#06b6d4" },
+            17: { name: "명사 + 숫자/수량 + α", short: "수량α", desc: "명사의 구체적인 수량이나 범위를 나타냄", hint: "명사 뒤에 숫자/단위 + 전치사구가 나오면!", color: "#d946ef" }
+        };
+
+        /* ========== SENTENCE BANK ========== */
+        /* n = noun indices, m = modifier indices (word index 0-based) */
+        /* d = difficulty: 1=easy, 2=mid, 3=hard */
+        /* t = type number (1-17) */
+        /* ex = explanation */
+        const SENTENCES = [
+            // ===== TYPE 1: 전치사 + 명사구 (15문장) =====
+            { s: "The book on the desk is mine.", t: 1, d: 1, n: [0, 1], m: [2, 3, 4], ex: "명사(The book) 뒤에 전치사 on이 나와서 'the desk 위에 있는'이라고 꾸며줍니다." },
+            { s: "Students from different countries gathered here.", t: 1, d: 1, n: [0], m: [1, 2, 3], ex: "Students 뒤에 from이 나와서 '다른 나라 출신의'라고 꾸며줍니다." },
+            { s: "The flowers in the garden are beautiful.", t: 1, d: 1, n: [0, 1], m: [2, 3, 4], ex: "The flowers 뒤에 in이 나와서 '정원에 있는'이라고 꾸며줍니다." },
+            { s: "A man with a black hat entered the room.", t: 1, d: 1, n: [0, 1], m: [2, 3, 4, 5], ex: "A man 뒤에 with가 나와서 '검은 모자를 쓴'이라고 꾸며줍니다." },
+            { s: "The road to the airport is closed.", t: 1, d: 1, n: [0, 1], m: [2, 3, 4], ex: "The road 뒤에 to가 나와서 '공항으로 가는'이라고 꾸며줍니다." },
+            { s: "The girl in the red dress smiled at me.", t: 1, d: 1, n: [0, 1], m: [2, 3, 4, 5], ex: "The girl 뒤에 in이 나와서 '빨간 드레스를 입은'이라고 꾸며줍니다." },
+            { s: "The coffee on the table was cold.", t: 1, d: 1, n: [0, 1], m: [2, 3, 4], ex: "The coffee 뒤에 on이 나와서 '테이블 위의'라고 꾸며줍니다." },
+            { s: "A letter from my grandmother arrived today.", t: 1, d: 1, n: [0, 1], m: [2, 3, 4], ex: "A letter 뒤에 from이 나와서 '할머니로부터 온'이라고 꾸며줍니다." },
+            { s: "The bridge over the river was built last year.", t: 1, d: 2, n: [0, 1], m: [2, 3, 4], ex: "The bridge 뒤에 over가 나와서 '강 위에 있는'이라고 꾸며줍니다." },
+            { s: "The key to success is hard work.", t: 1, d: 2, n: [0, 1], m: [2, 3], ex: "The key 뒤에 to가 나와서 '성공의/성공으로 가는'이라고 꾸며줍니다." },
+            { s: "The price of oil has risen sharply.", t: 1, d: 2, n: [0, 1], m: [2, 3], ex: "The price 뒤에 of가 나와서 '석유의'라고 꾸며줍니다." },
+            { s: "Children at the park were playing happily.", t: 1, d: 1, n: [0], m: [1, 2, 3], ex: "Children 뒤에 at이 나와서 '공원에 있는'이라고 꾸며줍니다." },
+            { s: "The effect of climate change is visible everywhere.", t: 1, d: 2, n: [0, 1], m: [2, 3, 4], ex: "The effect 뒤에 of가 나와서 '기후 변화의'라고 꾸며줍니다." },
+            { s: "The woman behind the counter smiled warmly.", t: 1, d: 1, n: [0, 1], m: [2, 3, 4], ex: "The woman 뒤에 behind가 나와서 '카운터 뒤에 있는'이라고 꾸며줍니다." },
+            { s: "The noise from the construction site was unbearable.", t: 1, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The noise 뒤에 from이 나와서 '공사 현장에서 나는'이라고 꾸며줍니다." },
+
+            // ===== TYPE 2: 현재분사구 (15문장) =====
+            { s: "The man talking to John is my teacher.", t: 2, d: 1, n: [0, 1], m: [2, 3, 4], ex: "The man 뒤에 talking(~ing)이 나와서 'John과 대화하고 있는'이라고 꾸며줍니다. man이 직접 말하는 사람이므로 능동(~ing)." },
+            { s: "The girl singing on the stage is my sister.", t: 2, d: 1, n: [0, 1], m: [2, 3, 4, 5], ex: "The girl 뒤에 singing이 나와서 '무대에서 노래하는'이라고 꾸며줍니다." },
+            { s: "The dog running in the park is mine.", t: 2, d: 1, n: [0, 1], m: [2, 3, 4, 5], ex: "The dog 뒤에 running이 나옵니다. 개가 직접 달리는 것이므로 능동(~ing)." },
+            { s: "Anyone wanting to join should sign up now.", t: 2, d: 2, n: [0], m: [1, 2, 3], ex: "Anyone 뒤에 wanting이 나와서 '참가하고 싶어하는'이라고 꾸며줍니다." },
+            { s: "The woman wearing glasses is the principal.", t: 2, d: 1, n: [0, 1], m: [2, 3], ex: "The woman 뒤에 wearing이 나와서 '안경을 쓰고 있는'이라고 꾸며줍니다." },
+            { s: "Students studying abroad often face challenges.", t: 2, d: 2, n: [0], m: [1, 2], ex: "Students 뒤에 studying이 나와서 '해외에서 공부하는'이라고 꾸며줍니다." },
+            { s: "The river flowing through the city is polluted.", t: 2, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The river 뒤에 flowing이 나와서 '도시를 관통해 흐르는'이라고 꾸며줍니다." },
+            { s: "The child crying in the corner needs help.", t: 2, d: 1, n: [0, 1], m: [2, 3, 4, 5], ex: "The child 뒤에 crying이 나와서 '구석에서 울고 있는'이라고 꾸며줍니다." },
+            { s: "People living in coastal areas should be careful.", t: 2, d: 2, n: [0], m: [1, 2, 3, 4], ex: "People 뒤에 living이 나와서 '해안 지역에 사는'이라고 꾸며줍니다." },
+            { s: "The car blocking the driveway belongs to Tom.", t: 2, d: 2, n: [0, 1], m: [2, 3, 4], ex: "The car 뒤에 blocking이 나와서 '진입로를 막고 있는'이라고 꾸며줍니다." },
+            { s: "The boy sitting next to me asked a question.", t: 2, d: 1, n: [0, 1], m: [2, 3, 4, 5], ex: "The boy 뒤에 sitting이 나와서 '내 옆에 앉아 있는'이라고 꾸며줍니다." },
+            { s: "The teacher explaining the problem was patient.", t: 2, d: 2, n: [0, 1], m: [2, 3, 4], ex: "The teacher 뒤에 explaining이 나와서 '문제를 설명하고 있는'이라고 꾸며줍니다." },
+            { s: "Tourists visiting the museum took many photos.", t: 2, d: 2, n: [0], m: [1, 2, 3], ex: "Tourists 뒤에 visiting이 나와서 '박물관을 방문하는'이라고 꾸며줍니다." },
+            { s: "The bird sitting on the fence flew away.", t: 2, d: 1, n: [0, 1], m: [2, 3, 4, 5], ex: "The bird 뒤에 sitting이 나와서 '울타리 위에 앉아 있는'이라고 꾸며줍니다." },
+            { s: "The phone ringing loudly woke me up.", t: 2, d: 2, n: [0, 1], m: [2, 3], ex: "The phone 뒤에 ringing이 나와서 '시끄럽게 울리는'이라고 꾸며줍니다." },
+
+            // ===== TYPE 3: 과거분사구 (15문장) =====
+            { s: "The car repaired by the mechanic runs well.", t: 3, d: 1, n: [0, 1], m: [2, 3, 4, 5], ex: "The car 뒤에 과거분사 repaired가 나옵니다. 차가 수리'된' 것이므로 수동(p.p.)." },
+            { s: "The song sung on the stage was beautiful.", t: 3, d: 1, n: [0, 1], m: [2, 3, 4, 5], ex: "The song 뒤에 sung이 나옵니다. 노래가 불린 것이므로 수동." },
+            { s: "The solution proposed by experts was accepted.", t: 3, d: 2, n: [0, 1], m: [2, 3, 4], ex: "The solution 뒤에 proposed가 나옵니다. 해결책이 제안'된' 것이므로 수동." },
+            { s: "The window broken by the storm was fixed.", t: 3, d: 1, n: [0, 1], m: [2, 3, 4, 5], ex: "The window 뒤에 broken이 나옵니다. 창문이 깨진 것이므로 수동." },
+            { s: "The letter written in French was hard to read.", t: 3, d: 2, n: [0, 1], m: [2, 3, 4], ex: "The letter 뒤에 written이 나옵니다. 편지가 쓰인 것이므로 수동." },
+            { s: "The food served at the restaurant was delicious.", t: 3, d: 1, n: [0, 1], m: [2, 3, 4, 5], ex: "The food 뒤에 served가 나옵니다. 음식이 제공된 것이므로 수동." },
+            { s: "The bridge built in 1900 still stands today.", t: 3, d: 2, n: [0, 1], m: [2, 3, 4], ex: "The bridge 뒤에 built가 나옵니다. 다리가 지어진 것이므로 수동." },
+            { s: "The package delivered this morning is on the table.", t: 3, d: 1, n: [0, 1], m: [2, 3, 4], ex: "The package 뒤에 delivered가 나옵니다. 소포가 배달된 것이므로 수동." },
+            { s: "The painting stolen from the museum was found.", t: 3, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The painting 뒤에 stolen이 나옵니다. 그림이 도난당한 것이므로 수동." },
+            { s: "Languages spoken in Europe are very diverse.", t: 3, d: 2, n: [0], m: [1, 2, 3], ex: "Languages 뒤에 spoken이 나옵니다. 언어가 사용(말해)지는 것이므로 수동." },
+            { s: "The dress designed by her mother was stunning.", t: 3, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The dress 뒤에 designed가 나옵니다. 드레스가 디자인된 것이므로 수동." },
+            { s: "The homework assigned by the teacher was easy.", t: 3, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The homework 뒤에 assigned가 나옵니다. 숙제가 배정된 것이므로 수동." },
+            { s: "The money saved over the years was spent wisely.", t: 3, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The money 뒤에 saved가 나옵니다. 돈이 저축된 것이므로 수동." },
+            { s: "The email sent to all employees contained errors.", t: 3, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The email 뒤에 sent가 나옵니다. 이메일이 보내진 것이므로 수동." },
+            { s: "The tree planted by my grandfather grew tall.", t: 3, d: 1, n: [0, 1], m: [2, 3, 4, 5], ex: "The tree 뒤에 planted가 나옵니다. 나무가 심어진 것이므로 수동." },
+
+            // ===== TYPE 4: 형용사 + α (10문장) =====
+            { s: "It is a problem difficult to solve.", t: 4, d: 2, n: [3, 4], m: [5, 6, 7], ex: "a problem 뒤에 형용사 difficult + to solve가 나와서 '풀기 어려운'이라고 보충 설명합니다." },
+            { s: "Give me something cold to drink.", t: 4, d: 1, n: [2, 3], m: [4, 5, 6], ex: "something 뒤에 형용사 cold + to drink가 나와서 '마실 차가운'이라고 꾸며줍니다." },
+            { s: "She needs a bag big enough for her laptop.", t: 4, d: 2, n: [3, 4], m: [5, 6, 7, 8, 9], ex: "a bag 뒤에 형용사 big enough + for her laptop이 나와서 '노트북이 들어갈 만큼 큰'이라고 꾸며줍니다." },
+            { s: "He is a person easy to get along with.", t: 4, d: 2, n: [3, 4], m: [5, 6, 7, 8, 9], ex: "a person 뒤에 easy + to get along with가 나와서 '어울리기 쉬운'이라고 꾸며줍니다." },
+            { s: "We found a place suitable for the event.", t: 4, d: 2, n: [3, 4], m: [5, 6, 7, 8], ex: "a place 뒤에 suitable + for the event가 나와서 '행사에 적합한'이라고 꾸며줍니다." },
+            { s: "She wants a dress similar to that one.", t: 4, d: 2, n: [3, 4], m: [5, 6, 7, 8], ex: "a dress 뒤에 similar + to that one이 나와서 '저것과 비슷한'이라고 꾸며줍니다." },
+            { s: "There is nothing wrong with your answer.", t: 4, d: 2, n: [2, 3], m: [4, 5, 6, 7], ex: "nothing 뒤에 wrong + with your answer가 나와서 '너의 답에 틀린'이라고 꾸며줍니다." },
+            { s: "I need a box large enough to hold all the books.", t: 4, d: 2, n: [3, 4], m: [5, 6, 7, 8, 9, 10, 11], ex: "a box 뒤에 large enough + to hold all the books가 나와서 '모든 책을 담을 만큼 큰'이라고 꾸며줍니다." },
+            { s: "This is a topic relevant to our discussion.", t: 4, d: 2, n: [3, 4], m: [5, 6, 7, 8], ex: "a topic 뒤에 relevant + to our discussion이 나와서 '우리 토론과 관련된'이라고 꾸며줍니다." },
+            { s: "She wore a hat full of colorful flowers.", t: 4, d: 2, n: [3, 4], m: [5, 6, 7, 8], ex: "a hat 뒤에 full + of colorful flowers가 나와서 '화려한 꽃으로 가득한'이라고 꾸며줍니다." },
+
+            // ===== TYPE 5: to 부정사 (12문장) =====
+            { s: "I have no friends to play with.", t: 5, d: 1, n: [2, 3], m: [4, 5, 6], ex: "no friends 뒤에 to play with가 나와서 '함께 놀'이라고 목적/용도를 설명합니다." },
+            { s: "She needs time to think about it.", t: 5, d: 1, n: [2], m: [3, 4, 5, 6], ex: "time 뒤에 to think가 나와서 '생각할'이라고 목적을 설명합니다." },
+            { s: "He has the ability to lead a team.", t: 5, d: 2, n: [2, 3], m: [4, 5, 6, 7], ex: "the ability 뒤에 to lead가 나와서 '팀을 이끌'이라고 꾸며줍니다." },
+            { s: "Give me a chance to explain myself.", t: 5, d: 1, n: [3, 4], m: [5, 6, 7], ex: "a chance 뒤에 to explain이 나와서 '설명할'이라고 꾸며줍니다." },
+            { s: "There is no reason to worry about it.", t: 5, d: 1, n: [2, 3], m: [4, 5, 6, 7], ex: "no reason 뒤에 to worry가 나와서 '걱정할'이라고 꾸며줍니다." },
+            { s: "She made a decision to study abroad.", t: 5, d: 2, n: [3, 4], m: [5, 6, 7], ex: "a decision 뒤에 to study abroad가 나와서 '유학할'이라고 꾸며줍니다." },
+            { s: "I need a pen to write with.", t: 5, d: 1, n: [3, 4], m: [5, 6, 7], ex: "a pen 뒤에 to write with가 나와서 '쓸'이라고 용도를 설명합니다." },
+            { s: "He is the right person to ask for help.", t: 5, d: 2, n: [3, 4, 5], m: [6, 7, 8, 9], ex: "the right person 뒤에 to ask for help가 나와서 '도움을 요청할'이라고 꾸며줍니다." },
+            { s: "This is the best way to solve the problem.", t: 5, d: 2, n: [3, 4, 5], m: [6, 7, 8, 9], ex: "the best way 뒤에 to solve가 나와서 '문제를 풀'이라고 꾸며줍니다." },
+            { s: "She was the first woman to climb that mountain.", t: 5, d: 2, n: [3, 4, 5], m: [6, 7, 8, 9], ex: "the first woman 뒤에 to climb이 나와서 '그 산을 오른'이라고 꾸며줍니다." },
+            { s: "We have a lot of work to do today.", t: 5, d: 1, n: [4, 5], m: [6, 7, 8], ex: "work 뒤에 to do가 나와서 '오늘 할'이라고 꾸며줍니다." },
+            { s: "He found a place to park his car.", t: 5, d: 1, n: [3, 4], m: [5, 6, 7, 8], ex: "a place 뒤에 to park가 나와서 '차를 세울'이라고 꾸며줍니다." },
+
+            // ===== TYPE 6: 관계대명사 주격 (15문장) =====
+            { s: "The woman who lives next door is a doctor.", t: 6, d: 1, n: [0, 1], m: [2, 3, 4, 5], ex: "The woman 뒤에 who + 동사(lives)가 바로 나옵니다. who가 주어 역할 → 주격 관계대명사절." },
+            { s: "The boy who won the race celebrated loudly.", t: 6, d: 1, n: [0, 1], m: [2, 3, 4, 5], ex: "The boy 뒤에 who + won(동사)이 바로 나옵니다. 주격 관계대명사." },
+            { s: "The dog that barks at night annoys everyone.", t: 6, d: 1, n: [0, 1], m: [2, 3, 4, 5], ex: "The dog 뒤에 that + barks(동사)가 바로 나옵니다. 주격 관계대명사." },
+            { s: "I know the girl who plays the violin.", t: 6, d: 1, n: [3, 4], m: [5, 6, 7, 8], ex: "the girl 뒤에 who + plays(동사)가 바로 나옵니다. 주격 관계대명사." },
+            { s: "The teacher who taught us math retired last year.", t: 6, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The teacher 뒤에 who + taught(동사)가 바로 나옵니다." },
+            { s: "The cat that sleeps on the sofa is very old.", t: 6, d: 1, n: [0, 1], m: [2, 3, 4, 5, 6], ex: "The cat 뒤에 that + sleeps(동사)가 바로 나옵니다." },
+            { s: "People who exercise regularly tend to be healthier.", t: 6, d: 2, n: [0], m: [1, 2, 3], ex: "People 뒤에 who + exercise(동사)가 나옵니다. 주격 관계대명사." },
+            { s: "The artist who painted this picture is famous.", t: 6, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The artist 뒤에 who + painted(동사)가 바로 나옵니다." },
+            { s: "The machine that makes coffee is broken.", t: 6, d: 1, n: [0, 1], m: [2, 3, 4], ex: "The machine 뒤에 that + makes(동사)가 바로 나옵니다." },
+            { s: "Students who study hard usually get good grades.", t: 6, d: 2, n: [0], m: [1, 2, 3], ex: "Students 뒤에 who + study(동사)가 나옵니다. 주격 관계대명사." },
+            { s: "The book which changed my life was a gift.", t: 6, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The book 뒤에 which + changed(동사)가 바로 나옵니다. 주격 관계대명사." },
+            { s: "The river that flows through Seoul is the Han.", t: 6, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The river 뒤에 that + flows(동사)가 바로 나옵니다." },
+            { s: "The man who called you was my brother.", t: 6, d: 1, n: [0, 1], m: [2, 3, 4], ex: "The man 뒤에 who + called(동사)가 바로 나옵니다. 주격 관계대명사." },
+            { s: "The company which produces electric cars is growing.", t: 6, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The company 뒤에 which + produces(동사)가 바로 나옵니다." },
+            { s: "Anyone who needs help can ask me.", t: 6, d: 2, n: [0], m: [1, 2, 3], ex: "Anyone 뒤에 who + needs(동사)가 나옵니다. 주격 관계대명사." },
+
+            // ===== TYPE 7: 관계대명사 목적격 생략 (25문장 — 집중!) =====
+            { s: "The movie I watched yesterday was fantastic.", t: 7, d: 1, n: [0, 1], m: [2, 3, 4], ex: "⚡ The movie 뒤에 주어(I) + 동사(watched)가 바로 나왔죠? 관계대명사(that/which)가 생략됐어요! The movie (that) I watched yesterday." },
+            { s: "The song she sang was beautiful.", t: 7, d: 1, n: [0, 1], m: [2, 3], ex: "⚡ The song 뒤에 주어(she) + 동사(sang)가 바로! 관계대명사 생략. The song (that) she sang." },
+            { s: "The cake my mother made was delicious.", t: 7, d: 1, n: [0, 1], m: [2, 3, 4], ex: "⚡ The cake 뒤에 주어(my mother) + 동사(made)가 바로! The cake (that) my mother made." },
+            { s: "The person you met at the party is my cousin.", t: 7, d: 1, n: [0, 1], m: [2, 3, 4, 5, 6], ex: "⚡ The person 뒤에 you(주어) + met(동사)가 바로! The person (whom) you met at the party." },
+            { s: "The dress she wore to the wedding looked amazing.", t: 7, d: 2, n: [0, 1], m: [2, 3, 4, 5, 6], ex: "⚡ The dress 뒤에 she(주어) + wore(동사)가 바로! The dress (that) she wore." },
+            { s: "The answer he gave was completely wrong.", t: 7, d: 1, n: [0, 1], m: [2, 3], ex: "⚡ The answer 뒤에 he(주어) + gave(동사)가 바로! The answer (that) he gave." },
+            { s: "The food we ordered arrived quickly.", t: 7, d: 1, n: [0, 1], m: [2, 3], ex: "⚡ The food 뒤에 we(주어) + ordered(동사)가 바로! The food (that) we ordered." },
+            { s: "The book I borrowed from the library is overdue.", t: 7, d: 2, n: [0, 1], m: [2, 3, 4, 5, 6], ex: "⚡ The book 뒤에 I(주어) + borrowed(동사)가 바로! The book (that) I borrowed from the library." },
+            { s: "The car they bought last month already broke down.", t: 7, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "⚡ The car 뒤에 they(주어) + bought(동사)가 바로! 관계대명사 생략." },
+            { s: "The teacher we had in middle school was kind.", t: 7, d: 2, n: [0, 1], m: [2, 3, 4, 5, 6], ex: "⚡ The teacher 뒤에 we(주어) + had(동사)가 바로! 관계대명사 생략." },
+            { s: "The gift she received made her very happy.", t: 7, d: 1, n: [0, 1], m: [2, 3], ex: "⚡ The gift 뒤에 she(주어) + received(동사)가 바로! 관계대명사 생략." },
+            { s: "The place we visited was breathtaking.", t: 7, d: 1, n: [0, 1], m: [2, 3], ex: "⚡ The place 뒤에 we(주어) + visited(동사)가 바로! 관계대명사 생략." },
+            { s: "The man you talked to is the manager.", t: 7, d: 2, n: [0, 1], m: [2, 3, 4], ex: "⚡ The man 뒤에 you(주어) + talked(동사)가 바로! The man (whom) you talked to." },
+            { s: "The test I took was harder than I expected.", t: 7, d: 2, n: [0, 1], m: [2, 3], ex: "⚡ The test 뒤에 I(주어) + took(동사)가 바로! 관계대명사 생략." },
+            { s: "The house they sold was over a hundred years old.", t: 7, d: 2, n: [0, 1], m: [2, 3], ex: "⚡ The house 뒤에 they(주어) + sold(동사)가 바로! 관계대명사 생략." },
+            { s: "The news he told me was shocking.", t: 7, d: 1, n: [0, 1], m: [2, 3, 4], ex: "⚡ The news 뒤에 he(주어) + told(동사)가 바로! 관계대명사 생략." },
+            { s: "The homework the teacher assigned was too long.", t: 7, d: 2, n: [0, 1], m: [2, 3, 4], ex: "⚡ The homework 뒤에 the teacher(주어) + assigned(동사)가 바로! 관계대명사 생략." },
+            { s: "The pictures I took during the trip turned out great.", t: 7, d: 2, n: [0, 1], m: [2, 3, 4, 5, 6], ex: "⚡ The pictures 뒤에 I(주어) + took(동사)가 바로! 관계대명사 생략." },
+            { s: "The seat you are sitting in is mine.", t: 7, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "⚡ The seat 뒤에 you(주어) + are sitting(동사)가 바로! 관계대명사 생략." },
+            { s: "The story she told us made everyone laugh.", t: 7, d: 1, n: [0, 1], m: [2, 3, 4], ex: "⚡ The story 뒤에 she(주어) + told(동사)가 바로! 관계대명사 생략." },
+            { s: "The skills you learn in school are important.", t: 7, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "⚡ The skills 뒤에 you(주어) + learn(동사)가 바로! 관계대명사 생략." },
+            { s: "The advice my parents gave me was helpful.", t: 7, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "⚡ The advice 뒤에 my parents(주어) + gave(동사)가 바로! 관계대명사 생략." },
+            { s: "The problems we face today are complex.", t: 7, d: 2, n: [0, 1], m: [2, 3, 4], ex: "⚡ The problems 뒤에 we(주어) + face(동사)가 바로! 관계대명사 생략." },
+            { s: "The music they play at the cafe is relaxing.", t: 7, d: 2, n: [0, 1], m: [2, 3, 4, 5, 6], ex: "⚡ The music 뒤에 they(주어) + play(동사)가 바로! 관계대명사 생략." },
+            { s: "The message you sent was received.", t: 7, d: 1, n: [0, 1], m: [2, 3], ex: "⚡ The message 뒤에 you(주어) + sent(동사)가 바로! 관계대명사 생략." },
+
+            // ===== TYPE 8: 관계부사절 (10문장) =====
+            { s: "I remember the day when we first met.", t: 8, d: 1, n: [2, 3], m: [4, 5, 6, 7], ex: "the day 뒤에 when + 완전한 문장(we first met)이 나옵니다. 시간의 관계부사." },
+            { s: "This is the place where we stayed last summer.", t: 8, d: 1, n: [3, 4], m: [5, 6, 7, 8, 9], ex: "the place 뒤에 where + 완전한 문장이 나옵니다. 장소의 관계부사." },
+            { s: "The reason why he left is unclear.", t: 8, d: 2, n: [0, 1], m: [2, 3, 4], ex: "The reason 뒤에 why + 완전한 문장(he left)이 나옵니다. 이유의 관계부사." },
+            { s: "I know the restaurant where they serve great pasta.", t: 8, d: 2, n: [3, 4], m: [5, 6, 7, 8, 9], ex: "the restaurant 뒤에 where + 완전한 문장이 나옵니다." },
+            { s: "Do you remember the time when we got lost?", t: 8, d: 2, n: [4, 5], m: [6, 7, 8, 9], ex: "the time 뒤에 when + 완전한 문장이 나옵니다." },
+            { s: "This is the town where I grew up.", t: 8, d: 1, n: [3, 4], m: [5, 6, 7, 8], ex: "the town 뒤에 where + 완전한 문장(I grew up)이 나옵니다." },
+            { s: "I love the way he explains things.", t: 8, d: 2, n: [3, 4], m: [5, 6, 7], ex: "the way 뒤에 완전한 문장(he explains things)이 나옵니다. 방법의 관계부사(how 생략)." },
+            { s: "The moment when he scored was unforgettable.", t: 8, d: 2, n: [0, 1], m: [2, 3, 4], ex: "The moment 뒤에 when + he scored가 나옵니다. 시간의 관계부사." },
+            { s: "She showed me the room where she studies.", t: 8, d: 1, n: [4, 5], m: [6, 7, 8], ex: "the room 뒤에 where + 완전한 문장이 나옵니다." },
+            { s: "The era when dinosaurs lived was millions of years ago.", t: 8, d: 2, n: [0, 1], m: [2, 3, 4], ex: "The era 뒤에 when + 완전한 문장(dinosaurs lived)이 나옵니다." },
+
+            // ===== TYPE 9: 동격 that절 (10문장) =====
+            { s: "The news that he won the award surprised everyone.", t: 9, d: 2, n: [0, 1], m: [2, 3, 4, 5, 6], ex: "추상명사 The news 뒤에 that + 완전한 문장이 나옵니다. '그가 상을 탔다는' 소식. 동격 that절." },
+            { s: "The fact that she lied was disappointing.", t: 9, d: 2, n: [0, 1], m: [2, 3, 4], ex: "The fact 뒤에 that + 완전한 문장. '그녀가 거짓말했다는' 사실." },
+            { s: "The idea that money brings happiness is wrong.", t: 9, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The idea 뒤에 that + 완전한 문장. '돈이 행복을 가져온다는' 생각." },
+            { s: "The belief that hard work leads to success is common.", t: 9, d: 2, n: [0, 1], m: [2, 3, 4, 5, 6, 7], ex: "The belief 뒤에 that + 완전한 문장. '노력이 성공으로 이끈다는' 믿음." },
+            { s: "The rumor that they are getting married spread fast.", t: 9, d: 2, n: [0, 1], m: [2, 3, 4, 5, 6], ex: "The rumor 뒤에 that + 완전한 문장. '그들이 결혼한다는' 소문." },
+            { s: "The possibility that it might rain worried us.", t: 9, d: 3, n: [0, 1], m: [2, 3, 4, 5], ex: "The possibility 뒤에 that + 완전한 문장. '비가 올 수도 있다는' 가능성." },
+            { s: "The hope that things will improve keeps us going.", t: 9, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The hope 뒤에 that + 완전한 문장. '상황이 나아질 것이라는' 희망." },
+            { s: "The evidence that he was innocent was strong.", t: 9, d: 3, n: [0, 1], m: [2, 3, 4, 5], ex: "The evidence 뒤에 that + 완전한 문장. '그가 무죄라는' 증거." },
+            { s: "The theory that the earth is round was once controversial.", t: 9, d: 3, n: [0, 1], m: [2, 3, 4, 5, 6], ex: "The theory 뒤에 that + 완전한 문장. '지구가 둥글다는' 이론." },
+            { s: "The promise that he would return kept her waiting.", t: 9, d: 3, n: [0, 1], m: [2, 3, 4, 5], ex: "The promise 뒤에 that + 완전한 문장. '그가 돌아오겠다는' 약속." },
+
+            // ===== TYPE 10: of + ~ing 구 (8문장) =====
+            { s: "The idea of traveling around the world excites me.", t: 10, d: 2, n: [0, 1], m: [2, 3, 4, 5, 6], ex: "The idea 뒤에 of + traveling(동명사)이 나와서 '세계를 여행한다는' 생각." },
+            { s: "The process of learning a language takes time.", t: 10, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The process 뒤에 of + learning이 나와서 '언어를 배우는' 과정." },
+            { s: "The habit of reading before bed is healthy.", t: 10, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The habit 뒤에 of + reading이 나와서 '자기 전에 읽는' 습관." },
+            { s: "The risk of investing in stocks is high.", t: 10, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The risk 뒤에 of + investing이 나와서 '주식에 투자하는' 위험." },
+            { s: "The joy of helping others is immeasurable.", t: 10, d: 2, n: [0, 1], m: [2, 3, 4], ex: "The joy 뒤에 of + helping이 나와서 '다른 사람을 돕는' 기쁨." },
+            { s: "The fear of speaking in public is common.", t: 10, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The fear 뒤에 of + speaking이 나와서 '대중 앞에서 말하는' 두려움." },
+            { s: "The advantage of waking up early is more free time.", t: 10, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The advantage 뒤에 of + waking이 나옵니다." },
+            { s: "The cost of living in Seoul has increased.", t: 10, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The cost 뒤에 of + living이 나와서 '서울에서 사는' 비용." },
+
+            // ===== TYPE 11: 전치사 + 관계대명사 (8문장) =====
+            { s: "This is the house in which I grew up.", t: 11, d: 3, n: [3, 4], m: [5, 6, 7, 8, 9], ex: "the house 뒤에 in which + 완전한 문장이 나옵니다. 격식적 표현." },
+            { s: "The person to whom I spoke was very kind.", t: 11, d: 3, n: [0, 1], m: [2, 3, 4, 5], ex: "The person 뒤에 to whom이 나옵니다. 격식적 표현." },
+            { s: "The topic about which he spoke was interesting.", t: 11, d: 3, n: [0, 1], m: [2, 3, 4, 5], ex: "The topic 뒤에 about which가 나옵니다." },
+            { s: "The company for which she works is well known.", t: 11, d: 3, n: [0, 1], m: [2, 3, 4, 5], ex: "The company 뒤에 for which가 나옵니다." },
+            { s: "The chair on which he sat was uncomfortable.", t: 11, d: 3, n: [0, 1], m: [2, 3, 4, 5], ex: "The chair 뒤에 on which가 나옵니다." },
+            { s: "The city in which the conference was held is Paris.", t: 11, d: 3, n: [0, 1], m: [2, 3, 4, 5, 6, 7], ex: "The city 뒤에 in which + 완전한 문장이 나옵니다." },
+            { s: "The friend with whom I traveled is from Spain.", t: 11, d: 3, n: [0, 1], m: [2, 3, 4, 5], ex: "The friend 뒤에 with whom이 나옵니다." },
+            { s: "The reason for which he was punished was clear.", t: 11, d: 3, n: [0, 1], m: [2, 3, 4, 5, 6], ex: "The reason 뒤에 for which가 나옵니다." },
+
+            // ===== TYPE 12: whose (8문장) =====
+            { s: "The student whose backpack was stolen reported it.", t: 12, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The student 뒤에 whose + 명사(backpack)가 나옵니다. '그의 가방이 도난당한' 학생." },
+            { s: "I met a man whose daughter is a famous singer.", t: 12, d: 2, n: [3, 4], m: [5, 6, 7, 8, 9, 10], ex: "a man 뒤에 whose + daughter가 나옵니다. '딸이 유명한 가수인' 남자." },
+            { s: "The house whose roof was damaged has been fixed.", t: 12, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The house 뒤에 whose + roof가 나옵니다. '지붕이 손상된' 집." },
+            { s: "The woman whose car broke down asked for help.", t: 12, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The woman 뒤에 whose + car가 나옵니다. '차가 고장 난' 여자." },
+            { s: "The author whose books I love is visiting Korea.", t: 12, d: 3, n: [0, 1], m: [2, 3, 4, 5], ex: "The author 뒤에 whose + books가 나옵니다. '내가 사랑하는 책의' 작가." },
+            { s: "The country whose economy is growing attracts investors.", t: 12, d: 3, n: [0, 1], m: [2, 3, 4, 5], ex: "The country 뒤에 whose + economy가 나옵니다." },
+            { s: "The player whose goal won the match was celebrated.", t: 12, d: 3, n: [0, 1], m: [2, 3, 4, 5, 6], ex: "The player 뒤에 whose + goal이 나옵니다." },
+            { s: "The tree whose leaves turned red looks beautiful.", t: 12, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "The tree 뒤에 whose + leaves가 나옵니다. '잎이 빨갛게 변한' 나무." },
+
+            // ===== TYPE 13: 부사구 (6문장) =====
+            { s: "The people outside are waiting.", t: 13, d: 1, n: [0, 1], m: [2], ex: "The people 뒤에 부사 outside가 나와서 '밖에 있는' 사람들." },
+            { s: "The event tomorrow is important.", t: 13, d: 1, n: [0, 1], m: [2], ex: "The event 뒤에 시간 부사 tomorrow가 나와서 '내일의' 행사." },
+            { s: "The meeting yesterday was canceled.", t: 13, d: 1, n: [0, 1], m: [2], ex: "The meeting 뒤에 yesterday가 나와서 '어제의' 회의." },
+            { s: "The room upstairs is available.", t: 13, d: 1, n: [0, 1], m: [2], ex: "The room 뒤에 upstairs가 나와서 '위층의' 방." },
+            { s: "The park nearby has a beautiful pond.", t: 13, d: 1, n: [0, 1], m: [2], ex: "The park 뒤에 nearby가 나와서 '근처의' 공원." },
+            { s: "The game tonight will be exciting.", t: 13, d: 1, n: [0, 1], m: [2], ex: "The game 뒤에 tonight가 나와서 '오늘 밤의' 경기." },
+
+            // ===== TYPE 14: 동격 명사구 (6문장) =====
+            { s: "Seoul, the capital of Korea, is vibrant.", t: 14, d: 2, n: [0], m: [1, 2, 3, 4, 5], ex: "Seoul 뒤에 쉼표 + the capital of Korea(동격 명사구)가 나옵니다. '한국의 수도인' 서울." },
+            { s: "My friend Tom, a famous musician, will perform tonight.", t: 14, d: 2, n: [0, 1, 2], m: [3, 4, 5, 6], ex: "My friend Tom 뒤에 a famous musician이 동격으로 나옵니다." },
+            { s: "Einstein, a German-born physicist, changed science.", t: 14, d: 2, n: [0], m: [1, 2, 3, 4], ex: "Einstein 뒤에 a German-born physicist가 동격으로 나옵니다." },
+            { s: "Python, a popular programming language, is easy to learn.", t: 14, d: 2, n: [0], m: [1, 2, 3, 4, 5], ex: "Python 뒤에 a popular programming language가 동격." },
+            { s: "BTS, a Korean boy band, became a global sensation.", t: 14, d: 2, n: [0], m: [1, 2, 3, 4, 5], ex: "BTS 뒤에 a Korean boy band가 동격으로 나옵니다." },
+            { s: "The Amazon, the largest river in South America, is vital.", t: 14, d: 3, n: [0, 1], m: [2, 3, 4, 5, 6, 7, 8], ex: "The Amazon 뒤에 the largest river in South America가 동격." },
+
+            // ===== TYPE 15: 비교/최상급 (6문장) =====
+            { s: "A task more difficult than I expected awaited us.", t: 15, d: 2, n: [0, 1], m: [2, 3, 4, 5, 6], ex: "A task 뒤에 more difficult than I expected가 나와서 비교급으로 꾸며줍니다." },
+            { s: "The tallest building in the city can be seen from here.", t: 15, d: 2, n: [0, 1, 2], m: [3, 4, 5], ex: "The tallest building 뒤에 in the city가 최상급을 보충합니다." },
+            { s: "She chose a method simpler than the original one.", t: 15, d: 2, n: [3, 4], m: [5, 6, 7, 8, 9], ex: "a method 뒤에 simpler than이 나옵니다." },
+            { s: "The most interesting book I have ever read is this one.", t: 15, d: 3, n: [0, 1, 2, 3], m: [4, 5, 6, 7], ex: "The most interesting book 뒤에 I have ever read가 나옵니다. (최상급 + 관계대명사 목적격 혼합!)" },
+            { s: "A problem bigger than we thought emerged.", t: 15, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "A problem 뒤에 bigger than we thought가 나옵니다." },
+            { s: "The best solution available right now is this.", t: 15, d: 2, n: [0, 1, 2], m: [3, 4, 5], ex: "The best solution 뒤에 available right now가 나옵니다." },
+
+            // ===== TYPE 16: 수량 + of (6문장) =====
+            { s: "Many of the students passed the test.", t: 16, d: 1, n: [0], m: [1, 2, 3], ex: "Many 뒤에 of the students가 나와서 '학생들 중 다수가'라는 뜻." },
+            { s: "Some of the information was useful.", t: 16, d: 1, n: [0], m: [1, 2, 3], ex: "Some 뒤에 of the information이 나옵니다. '정보의 일부'." },
+            { s: "Most of the work has been completed.", t: 16, d: 1, n: [0], m: [1, 2, 3], ex: "Most 뒤에 of the work가 나옵니다. '일의 대부분'." },
+            { s: "All of the guests arrived on time.", t: 16, d: 1, n: [0], m: [1, 2, 3], ex: "All 뒤에 of the guests가 나옵니다. '손님들 전부'." },
+            { s: "None of the answers were correct.", t: 16, d: 2, n: [0], m: [1, 2, 3], ex: "None 뒤에 of the answers가 나옵니다. '답 중 아무것도'." },
+            { s: "Each of the participants received a certificate.", t: 16, d: 2, n: [0], m: [1, 2, 3], ex: "Each 뒤에 of the participants가 나옵니다. '참가자 각각'." },
+
+            // ===== TYPE 17: 명사 + 수량 + α (6문장) =====
+            { s: "Three books on the shelf are mine.", t: 17, d: 1, n: [0, 1], m: [2, 3, 4], ex: "Three books 뒤에 on the shelf가 나와서 '선반 위의 세 권의 책'." },
+            { s: "A journey of a thousand miles begins with a single step.", t: 17, d: 2, n: [0, 1], m: [2, 3, 4, 5], ex: "A journey 뒤에 of a thousand miles가 나옵니다." },
+            { s: "Two students in our class won the competition.", t: 17, d: 1, n: [0, 1], m: [2, 3, 4], ex: "Two students 뒤에 in our class가 나옵니다." },
+            { s: "Five members of the team were absent.", t: 17, d: 1, n: [0, 1], m: [2, 3, 4], ex: "Five members 뒤에 of the team이 나옵니다." },
+            { s: "A building of twenty stories collapsed.", t: 17, d: 2, n: [0, 1], m: [2, 3, 4], ex: "A building 뒤에 of twenty stories가 나옵니다." },
+            { s: "Ten pages of the document were missing.", t: 17, d: 2, n: [0, 1], m: [2, 3, 4], ex: "Ten pages 뒤에 of the document가 나옵니다." }
+        ];
+
+        /* ========== APP STATE ========== */
+        let state = {
+            mode: 'identify', diff: 'all',
+            idIdx: 0, clIdx: 0,
+            idPool: [], clPool: [],
+            total: 0, correct: 0, streak: 0, maxStreak: 0,
+            typeStats: {}, wrongList: []
+        };
+
+        function loadState() { try { const s = localStorage.getItem('syntaxSniper'); if (s) { const d = JSON.parse(s); Object.assign(state, d) } } catch (e) { } }
+        function saveState() { try { localStorage.setItem('syntaxSniper', JSON.stringify(state)) } catch (e) { } }
+
+        /* ========== TAB SWITCHING ========== */
+        function switchTab(tab) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            const btns = document.querySelectorAll('.nav button');
+            const names = ['identify', 'classify', 'custom', 'dashboard', 'reference'];
+            btns[names.indexOf(tab)]?.classList.add('active');
+            if (tab === 'dashboard') renderDashboard();
+            if (tab === 'reference') renderReference();
+        }
+
+        /* ========== SENTENCE POOL ========== */
+        function buildPool(diff) {
+            let pool = [...SENTENCES];
+            if (diff === 'easy') pool = pool.filter(s => s.d === 1);
+            else if (diff === 'mid') pool = pool.filter(s => s.d === 2);
+            else if (diff === 'hard') pool = pool.filter(s => s.d === 3);
+            // 셔플
+            for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[pool[i], pool[j]] = [pool[j], pool[i]] }
+            return pool;
+        }
+
+        /* ========== DIFFICULTY CHIPS ========== */
+        function setDifficulty(d) {
+            state.diff = d; state.idIdx = 0; state.idPool = buildPool(d);
+            document.querySelectorAll('#tab-identify .mode-selector .chip').forEach(c => { c.classList.remove('active'); if (c.textContent.includes(d === 'all' ? '전체' : d === 'easy' ? '쉬움' : d === 'mid' ? '보통' : '어려움')) c.classList.add('active') });
+            renderIdentify();
+        }
+        function setClassifyDiff(d) {
+            state.diff = d; state.clIdx = 0; state.clPool = buildPool(d);
+            document.querySelectorAll('#tab-classify .mode-selector .chip').forEach(c => { c.classList.remove('active'); if (c.textContent.includes(d === 'all' ? '전체' : d === 'easy' ? '쉬움' : d === 'mid' ? '보통' : '어려움')) c.classList.add('active') });
+            renderClassify();
+        }
+
+        /* ========== IDENTIFY MODE ========== */
+        function renderIdentify() {
+            const pool = state.idPool; if (!pool.length) return;
+            const item = pool[state.idIdx % pool.length];
+            const words = item.s.split(/\s+/);
+            const box = document.getElementById('id-sentence');
+            box.innerHTML = words.map((w, i) => `<span class="word" data-idx="${i}" onclick="toggleNoun(this,event)" oncontextmenu="toggleMod(this,event)">${w}</span>`).join(' ');
+            const diffMap = { 1: ['🌱 쉬움', 'diff-easy'], 2: ['🌳 보통', 'diff-mid'], 3: ['🏅 어려움', 'diff-hard'] };
+            const [label, cls] = diffMap[item.d] || diffMap[1];
+            document.getElementById('id-diff').textContent = label;
+            document.getElementById('id-diff').className = 'diff-badge ' + cls;
+            document.getElementById('id-counter').textContent = `${state.idIdx + 1} / ${pool.length}`;
+            document.getElementById('id-progress').style.width = (state.idIdx / pool.length * 100) + '%';
+            document.getElementById('id-feedback').className = 'feedback';
+            document.getElementById('id-feedback').classList.remove('show');
+            document.getElementById('id-next-group').style.display = 'none';
+        }
+
+        function toggleNoun(el, e) { e.preventDefault(); el.classList.toggle('noun-selected'); el.classList.remove('mod-selected') }
+        function toggleMod(el, e) { e.preventDefault(); el.classList.toggle('mod-selected'); el.classList.remove('noun-selected') }
+
+        function checkIdentify() {
+            const pool = state.idPool; const item = pool[state.idIdx % pool.length];
+            const words = document.querySelectorAll('#id-sentence .word');
+            const userN = new Set(), userM = new Set();
+            words.forEach(w => { const i = +w.dataset.idx; if (w.classList.contains('noun-selected')) userN.add(i); if (w.classList.contains('mod-selected')) userM.add(i) });
+            const correctN = new Set(item.n), correctM = new Set(item.m);
+            const nOk = setsEqual(userN, correctN), mOk = setsEqual(userM, correctM);
+            const isCorrect = nOk && mOk;
+            state.total++;
+            if (isCorrect) { state.correct++; state.streak++; if (state.streak > state.maxStreak) state.maxStreak = state.streak }
+            else { state.streak = 0; state.wrongList.unshift({ s: item.s, t: item.t }); if (state.wrongList.length > 20) state.wrongList.pop() }
+            // 유형별 통계
+            if (!state.typeStats[item.t]) state.typeStats[item.t] = { total: 0, correct: 0 };
+            state.typeStats[item.t].total++;
+            if (isCorrect) state.typeStats[item.t].correct++;
+            // 시각 피드백
+            words.forEach(w => {
+                const i = +w.dataset.idx;
+                w.classList.remove('noun-selected', 'mod-selected');
+                if (correctN.has(i)) w.classList.add('correct-noun');
+                if (correctM.has(i)) w.classList.add('correct-mod');
+                if ((userN.has(i) && !correctN.has(i) && !correctM.has(i)) || (userM.has(i) && !correctM.has(i) && !correctN.has(i))) w.classList.add('wrong');
+            });
+            const fb = document.getElementById('id-feedback');
+            fb.className = 'feedback show ' + (isCorrect ? 'correct' : 'wrong');
+            document.getElementById('id-fb-title').textContent = isCorrect ? '🎉 정답!' : '❌ 오답';
+            document.getElementById('id-fb-explain').innerHTML = `<b>[${TYPES[item.t].short}]</b> ${item.ex}`;
+            document.getElementById('id-next-group').style.display = 'flex';
+            updateHeader(); saveState();
+        }
+
+        function showHint() {
+            const pool = state.idPool; const item = pool[state.idIdx % pool.length];
+            const fb = document.getElementById('id-feedback');
+            fb.className = 'feedback show'; fb.style.borderColor = 'var(--warning)'; fb.style.background = 'rgba(243,156,18,.1)';
+            document.getElementById('id-fb-title').textContent = '💡 힌트';
+            document.getElementById('id-fb-explain').textContent = TYPES[item.t].hint;
+        }
+
+        function skipSentence() { state.idIdx++; renderIdentify() }
+        function nextIdentify() { state.idIdx++; renderIdentify() }
+
+        /* ========== CLASSIFY MODE ========== */
+        function renderClassify() {
+            const pool = state.clPool; if (!pool.length) return;
+            const item = pool[state.clIdx % pool.length];
+            const words = item.s.split(/\s+/);
+            const box = document.getElementById('cl-sentence');
+            box.innerHTML = words.map((w, i) => {
+                let cls = '';
+                if (item.n.includes(i)) cls = 'noun-selected';
+                if (item.m.includes(i)) cls = 'mod-selected';
+                return `<span class="word ${cls}">${w}</span>`;
+            }).join(' ');
+            const diffMap = { 1: ['🌱 쉬움', 'diff-easy'], 2: ['🌳 보통', 'diff-mid'], 3: ['🏅 어려움', 'diff-hard'] };
+            const [label, cls] = diffMap[item.d] || diffMap[1];
+            document.getElementById('cl-diff').textContent = label; document.getElementById('cl-diff').className = 'diff-badge ' + cls;
+            document.getElementById('cl-progress').style.width = (state.clIdx / pool.length * 100) + '%';
+            // 유형 그리드
+            const grid = document.getElementById('cl-type-grid');
+            grid.innerHTML = Object.entries(TYPES).map(([k, v]) => `<button class="type-btn" data-type="${k}" onclick="checkClassify(${k})">${k}. ${v.short}</button>`).join('');
+            document.getElementById('cl-feedback').className = 'feedback';
+            document.getElementById('cl-feedback').classList.remove('show');
+            document.getElementById('cl-next-group').style.display = 'none';
+        }
+
+        function checkClassify(userType) {
+            const pool = state.clPool; const item = pool[state.clIdx % pool.length];
+            const isCorrect = (userType === item.t);
+            state.total++;
+            if (isCorrect) { state.correct++; state.streak++; if (state.streak > state.maxStreak) state.maxStreak = state.streak }
+            else { state.streak = 0; state.wrongList.unshift({ s: item.s, t: item.t }); if (state.wrongList.length > 20) state.wrongList.pop() }
+            if (!state.typeStats[item.t]) state.typeStats[item.t] = { total: 0, correct: 0 };
+            state.typeStats[item.t].total++; if (isCorrect) state.typeStats[item.t].correct++;
+            document.querySelectorAll('.type-btn').forEach(b => {
+                const bt = +b.dataset.type;
+                if (bt === item.t) b.classList.add('correct');
+                else if (bt === userType && !isCorrect) b.classList.add('wrong');
+                b.style.pointerEvents = 'none';
+            });
+            const fb = document.getElementById('cl-feedback');
+            fb.className = 'feedback show ' + (isCorrect ? 'correct' : 'wrong');
+            document.getElementById('cl-fb-title').textContent = isCorrect ? '🎉 정답!' : '❌ 오답 — 정답: ' + TYPES[item.t].name;
+            document.getElementById('cl-fb-explain').innerHTML = item.ex;
+            document.getElementById('cl-next-group').style.display = 'flex';
+            updateHeader(); saveState();
+        }
+
+        function nextClassify() { state.clIdx++; renderClassify() }
+
+        /* ========== CUSTOM TEXT ========== */
+        function loadCustomText() {
+            const text = document.getElementById('custom-input').value.trim();
+            if (!text) { alert('지문을 입력해주세요!'); return }
+            const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+            const container = document.getElementById('custom-sentences');
+            container.innerHTML = '';
+            sentences.forEach((sent, si) => {
+                const words = sent.trim().split(/\s+/);
+                const div = document.createElement('div');
+                div.className = 'sentence-box'; div.style.marginBottom = '8px';
+                div.innerHTML = `<span style="font-size:.7em;color:var(--text-muted)">#${si + 1}</span> ` +
+                    words.map((w, i) => `<span class="word" data-si="${si}" data-idx="${i}" onclick="toggleNoun(this,event)" oncontextmenu="toggleMod(this,event)">${w}</span>`).join(' ');
+                container.appendChild(div);
+            });
+            document.getElementById('custom-practice').style.display = 'block';
+        }
+
+        function clearCustom() {
+            document.getElementById('custom-input').value = '';
+            document.getElementById('custom-practice').style.display = 'none';
+            document.getElementById('custom-sentences').innerHTML = '';
+        }
+
+        function exportCustomResult() {
+            const boxes = document.querySelectorAll('#custom-sentences .sentence-box');
+            let result = '=== 구문 스나이퍼 커스텀 분석 결과 ===\n\n';
+            boxes.forEach(box => {
+                const words = box.querySelectorAll('.word');
+                let sent = '', nouns = [], mods = [];
+                words.forEach(w => {
+                    sent += w.textContent + ' ';
+                    if (w.classList.contains('noun-selected')) nouns.push(w.textContent);
+                    if (w.classList.contains('mod-selected')) mods.push(w.textContent);
+                });
+                result += sent.trim() + '\n';
+                if (nouns.length) result += '  📘 명사: ' + nouns.join(' ') + '\n';
+                if (mods.length) result += '  📕 수식어: ' + mods.join(' ') + '\n';
+                result += '\n';
+            });
+            navigator.clipboard.writeText(result).then(() => alert('결과가 클립보드에 복사되었습니다!')).catch(() => {
+                const ta = document.createElement('textarea'); ta.value = result; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('복사 완료!');
+            });
+        }
+
+        /* ========== DASHBOARD ========== */
+        function renderDashboard() {
+            const acc = state.total ? Math.round(state.correct / state.total * 100) : 0;
+            document.getElementById('dash-summary').innerHTML = `
+    <div class="dash-card"><div class="big-num">${state.total}</div><div class="label">총 문제 수</div></div>
+    <div class="dash-card"><div class="big-num">${acc}%</div><div class="label">정답률</div></div>
+    <div class="dash-card"><div class="big-num">${state.streak}</div><div class="label">현재 연속 정답</div></div>
+    <div class="dash-card"><div class="big-num">${state.maxStreak}</div><div class="label">최고 연속 정답</div></div>`;
+            // 유형별 차트
+            const chart = document.getElementById('dash-type-chart');
+            let html = '';
+            for (let i = 1; i <= 17; i++) {
+                const ts = state.typeStats[i] || { total: 0, correct: 0 };
+                const pct = ts.total ? Math.round(ts.correct / ts.total * 100) : 0;
+                const color = TYPES[i].color;
+                html += `<div class="bar-row"><div class="bar-label">${i}. ${TYPES[i].short}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div><div class="bar-val" style="color:${color}">${ts.total ? pct + '%' : '-'}</div></div>`;
+            }
+            chart.innerHTML = html;
+            // 오답 목록
+            const wl = document.getElementById('dash-wrong-list');
+            if (state.wrongList.length === 0) wl.innerHTML = '<p style="color:var(--text-muted)">아직 오답이 없습니다! 🎉</p>';
+            else wl.innerHTML = state.wrongList.slice(0, 10).map(w => `<div style="padding:6px 0;border-bottom:1px solid var(--surface3)">"${w.s}" <span style="color:${TYPES[w.t].color}">[${TYPES[w.t].short}]</span></div>`).join('');
+        }
+
+        function resetProgress() {
+            if (confirm('정말로 모든 진행도를 초기화할까요?')) {
+                state = { mode: 'identify', diff: 'all', idIdx: 0, clIdx: 0, idPool: buildPool('all'), clPool: buildPool('all'), total: 0, correct: 0, streak: 0, maxStreak: 0, typeStats: {}, wrongList: [] };
+                saveState(); renderDashboard(); updateHeader(); alert('초기화 완료!');
+            }
+        }
+
+        /* ========== REFERENCE TABLE ========== */
+        function renderReference() {
+            const examples = {
+                1: "The book <b class='mn'>on the desk</b> is mine.",
+                2: "The man <b class='md'>talking to John</b> is my teacher.",
+                3: "The car <b class='md'>repaired by the mechanic</b> runs well.",
+                4: "It's a problem <b class='md'>difficult to solve</b>.",
+                5: "I have no friends <b class='md'>to play with</b>.",
+                6: "The woman <b class='md'>who lives next door</b> is a doctor.",
+                7: "The movie <b class='md'>I watched yesterday</b> was fantastic.",
+                8: "I remember the day <b class='md'>when we first met</b>.",
+                9: "The news <b class='md'>that he won the award</b> surprised everyone.",
+                10: "The idea <b class='md'>of traveling around the world</b> excites me.",
+                11: "This is the house <b class='md'>in which I grew up</b>.",
+                12: "The student <b class='md'>whose backpack was stolen</b> reported it.",
+                13: "The people <b class='md'>outside</b> are waiting.",
+                14: "Seoul, <b class='md'>the capital of Korea</b>, is vibrant.",
+                15: "A task <b class='md'>more difficult than I expected</b>.",
+                16: "Many <b class='md'>of the students</b> passed the test.",
+                17: "Three books <b class='md'>on the shelf</b> are mine."
+            };
+            let html = '<style>.mn{color:var(--noun)}.md{color:var(--modifier)}</style><table style="width:100%;border-collapse:collapse;font-size:.85em">';
+            html += '<tr style="background:var(--surface3)"><th style="padding:8px;text-align:center;border:1px solid var(--surface3);width:30px">#</th><th style="padding:8px;border:1px solid var(--surface3)">유형</th><th style="padding:8px;border:1px solid var(--surface3)">힌트</th><th style="padding:8px;border:1px solid var(--surface3)">예문</th></tr>';
+            for (let i = 1; i <= 17; i++) {
+                const t = TYPES[i];
+                html += `<tr style="border-bottom:1px solid var(--surface3)"><td style="padding:8px;text-align:center;color:${t.color};font-weight:700">${i}</td><td style="padding:8px;color:${t.color}">${t.name}</td><td style="padding:8px;font-size:.9em;color:var(--text-dim)">${t.hint}</td><td style="padding:8px">${examples[i]}</td></tr>`;
+            }
+            html += '</table>';
+            document.getElementById('ref-table').innerHTML = html;
+        }
+
+        /* ========== HEADER UPDATE ========== */
+        function updateHeader() {
+            const acc = state.total ? Math.round(state.correct / state.total * 100) : 0;
+            document.getElementById('hd-acc').textContent = acc + '%';
+            document.getElementById('hd-streak').textContent = state.streak;
+            const pool = state.mode === 'classify' ? state.clPool : state.idPool;
+            const idx = state.mode === 'classify' ? state.clIdx : state.idIdx;
+            document.getElementById('hd-done').textContent = `${state.total}문제`;
+        }
+
+        /* ========== UTILS ========== */
+        function setsEqual(a, b) { if (a.size !== b.size) return false; for (const v of a) if (!b.has(v)) return false; return true }
+
+        /* ========== INIT ========== */
+        loadState();
+        state.idPool = buildPool(state.diff);
+        state.clPool = buildPool(state.diff);
+        renderIdentify();
+        updateHeader();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,7 @@
+# 이 폴더의 다른 과외 자료들 제외
+*
+!.gitignore
+!README.md
+!syntax_sniper.html
+!구문스나이퍼_실행.bat
+!LICENSE
