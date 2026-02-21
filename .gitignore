@@ -2,7 +2,7 @@
 *
 !.gitignore
 !README.md
-!syntax_sniper.html
+!index.html
 !구문스나이퍼_실행.bat
 !start.bat
 !install-cloudflared.bat
