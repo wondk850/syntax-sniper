@@ -581,6 +581,13 @@
             color: var(--danger)
         }
 
+        /* LONG-PRESS FEEDBACK */
+        .sentence-box .word.long-pressing {
+            transform: scale(1.15);
+            box-shadow: 0 0 12px rgba(232, 121, 249, .5);
+            transition: transform .15s, box-shadow .15s
+        }
+
         /* RESPONSIVE */
         @media(max-width:700px) {
             .header {
@@ -636,8 +643,8 @@
                         style="color:var(--noun);font-weight:700">수식받는 명사</span>와 <span
                         style="color:var(--modifier);font-weight:700">후치수식어</span>를 클릭으로 마킹하세요.</p>
                 <div class="legend">
-                    <span><span class="dot dot-noun"></span> 명사 (좌클릭)</span>
-                    <span><span class="dot dot-mod"></span> 수식어 (우클릭)</span>
+                    <span><span class="dot dot-noun"></span> 명사 (클릭/탭)</span>
+                    <span><span class="dot dot-mod"></span> 수식어 (우클릭/꾹 누르기)</span>
                 </div>
                 <div class="mode-selector">
                     <div class="chip active" onclick="setDifficulty('all')">전체</div>
@@ -718,8 +725,8 @@
                 <p style="color:var(--text-dim);font-size:.85em">각 문장에서 <span style="color:var(--noun)">명사</span>와 <span
                         style="color:var(--modifier)">수식어</span>를 찾아보세요. 선생님이 정답을 확인해줍니다.</p>
                 <div class="legend">
-                    <span><span class="dot dot-noun"></span> 명사 (좌클릭)</span>
-                    <span><span class="dot dot-mod"></span> 수식어 (우클릭)</span>
+                    <span><span class="dot dot-noun"></span> 명사 (클릭/탭)</span>
+                    <span><span class="dot dot-mod"></span> 수식어 (우클릭/꾹 누르기)</span>
                 </div>
                 <div id="custom-sentences"></div>
                 <div class="btn-group">
@@ -1012,8 +1019,41 @@
             typeStats: {}, wrongList: []
         };
 
-        function loadState() { try { const s = localStorage.getItem('syntaxSniper'); if (s) { const d = JSON.parse(s); Object.assign(state, d) } } catch (e) { } }
-        function saveState() { try { localStorage.setItem('syntaxSniper', JSON.stringify(state)) } catch (e) { } }
+        /* 진행도(숫자)만 저장 — Pool은 매번 새로 생성해서 최신 문장이 반영됨 */
+        function loadState() {
+            try {
+                const s = localStorage.getItem('syntaxSniper');
+                if (s) {
+                    const d = JSON.parse(s);
+                    // Pool과 모드는 제외하고 진행도만 복원
+                    if (d.diff) state.diff = d.diff;
+                    if (typeof d.idIdx === 'number') state.idIdx = d.idIdx;
+                    if (typeof d.clIdx === 'number') state.clIdx = d.clIdx;
+                    if (typeof d.total === 'number') state.total = d.total;
+                    if (typeof d.correct === 'number') state.correct = d.correct;
+                    if (typeof d.streak === 'number') state.streak = d.streak;
+                    if (typeof d.maxStreak === 'number') state.maxStreak = d.maxStreak;
+                    if (d.typeStats) state.typeStats = d.typeStats;
+                    if (d.wrongList) state.wrongList = d.wrongList;
+                }
+            } catch (e) { }
+        }
+        function saveState() {
+            try {
+                const saveData = {
+                    diff: state.diff,
+                    idIdx: state.idIdx,
+                    clIdx: state.clIdx,
+                    total: state.total,
+                    correct: state.correct,
+                    streak: state.streak,
+                    maxStreak: state.maxStreak,
+                    typeStats: state.typeStats,
+                    wrongList: state.wrongList
+                };
+                localStorage.setItem('syntaxSniper', JSON.stringify(saveData));
+            } catch (e) { }
+        }
 
         /* ========== TAB SWITCHING ========== */
         function switchTab(tab) {
@@ -1070,6 +1110,43 @@
 
         function toggleNoun(el, e) { e.preventDefault(); el.classList.toggle('noun-selected'); el.classList.remove('mod-selected') }
         function toggleMod(el, e) { e.preventDefault(); el.classList.toggle('mod-selected'); el.classList.remove('noun-selected') }
+
+        /* ========== MOBILE LONG-PRESS SUPPORT ========== */
+        /* 500ms 꾹 누르면 수식어 마킹 (모바일에서 우클릭 대체) */
+        let longPressTimer = null;
+        let longPressTriggered = false;
+
+        document.addEventListener('touchstart', function (e) {
+            const word = e.target.closest('.sentence-box .word');
+            if (!word) return;
+            longPressTriggered = false;
+            longPressTimer = setTimeout(function () {
+                longPressTriggered = true;
+                word.classList.add('long-pressing');
+                toggleMod(word, e);
+                // 짧은 진동 피드백 (지원하는 기기)
+                if (navigator.vibrate) navigator.vibrate(30);
+                setTimeout(() => word.classList.remove('long-pressing'), 200);
+            }, 500);
+        }, { passive: true });
+
+        document.addEventListener('touchend', function (e) {
+            if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+            const word = e.target.closest('.sentence-box .word');
+            if (!word) return;
+            if (longPressTriggered) {
+                // 롱프레스로 이미 수식어 마킹 완료 — 클릭 이벤트 방지
+                e.preventDefault();
+                longPressTriggered = false;
+            }
+        });
+
+        document.addEventListener('touchmove', function (e) {
+            // 손가락이 움직이면 롱프레스 취소
+            if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+            const word = document.querySelector('.word.long-pressing');
+            if (word) word.classList.remove('long-pressing');
+        }, { passive: true });
 
         function checkIdentify() {
             const pool = state.idPool; const item = pool[state.idIdx % pool.length];
