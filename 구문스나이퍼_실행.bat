@@ -24,23 +24,28 @@ if %ERRORLEVEL% NEQ 0 (
 
 :: Set variables
 set PORT=8081
-set APP_DIR=%~dp0
 
+:: Change to the directory where this bat file lives
+cd /d "%~dp0"
+
+echo [*] 현재 폴더: %cd%
 echo [*] 로컬 서버를 시작합니다... (포트: %PORT%)
 echo.
 
-:: Start Python HTTP server in background
-start /b python -m http.server %PORT% --directory "%APP_DIR%"
+:: Start Python HTTP server in background (using current directory)
+start /b python -m http.server %PORT%
 
 :: Wait a moment for server to start
 timeout /t 2 /nobreak > nul
 
 echo [✓] 로컬 서버 시작 완료!
+echo [*] 로컬 확인: http://localhost:%PORT%
+echo.
 echo [*] Cloudflare Tunnel을 시작합니다...
 echo.
 echo ═══════════════════════════════════════════════════════════════
-echo   아래 URL이 나타나면, 학생에게 링크를 보내주세요!
-echo   예: https://xxxx.trycloudflare.com/syntax_sniper.html
+echo   아래 URL이 나타나면, 학생에게 그대로 보내주세요!
+echo   (뒤에 아무것도 안 붙여도 됩니다)
 echo ═══════════════════════════════════════════════════════════════
 echo.
 
